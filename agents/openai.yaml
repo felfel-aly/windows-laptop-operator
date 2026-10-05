@@ -1,0 +1,8 @@
+interface:
+  display_name: "Windows Laptop Operator"
+  short_description: "Windows projects, task processes, and verified app control"
+  icon_small: "./assets/icon.svg"
+  icon_large: "./assets/icon.svg"
+  default_prompt: "Use $windows-laptop-operator to inspect my selected Windows project and complete the requested task with verification."
+policy:
+  allow_implicit_invocation: true
