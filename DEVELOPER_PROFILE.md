@@ -7,7 +7,6 @@ Electrical & Computer Engineering Technology student at **New York Institute of 
 - Electrical and computer engineering
 - Software engineering and automation
 - AI-assisted tooling and local agents
-- Quantitative research systems
 - Automotive diagnostics
 - Embedded systems and electronics
 - Hardware/device troubleshooting and repair
@@ -26,18 +25,6 @@ Highlights:
 - Workspace memory and project aliases
 - Security/privacy documentation and validation tooling
 - Regression tests and packaging workflow
-
-### Tradebot Research System
-A multi-market quantitative research and paper-validation platform designed around deterministic validation gates rather than direct AI-to-trade execution.
-
-Selected engineering work:
-- Multi-role research architecture
-- Role-aware model/provider routing
-- Walk-forward evaluation and risk controls
-- Deterministic paper-engine workflows
-- Audit logging and protected-state verification
-- Restart/idempotency safeguards
-- Multi-market research across metals, energy, and FX
 
 ### FreelanceHub
 Java object-oriented application for managing freelance clients, fixed-price projects, hourly projects, expenses, revenue, status, and profit.
@@ -93,4 +80,4 @@ I prefer systems that are observable, testable, guarded, practical, and iterativ
 
 ## Current Direction
 
-My current work is focused on combining hardware and physical systems with software and intelligent automation: stronger automation tools, Java/Python projects, quantitative-research infrastructure, electronics, and diagnostic systems.
+My current work is focused on combining hardware and physical systems with software and intelligent automation: stronger automation tools, Java/Python projects, electronics, and diagnostic systems.
