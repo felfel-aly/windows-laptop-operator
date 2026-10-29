@@ -30,7 +30,7 @@ class SecurityHardeningTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     core.safe_path(self.project, name)
         self.assertEqual(core.safe_path(self.project, 'ordinary.txt'),
-                         self.project / 'ordinary.txt')
+                         self.project.resolve() / 'ordinary.txt')
 
     def test_pipeline_rejects_untrusted_shell_strings_without_opt_in(self):
         sentinel = self.project / 'shell-was-invoked.txt'
