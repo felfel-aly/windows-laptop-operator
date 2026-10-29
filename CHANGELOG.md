@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased — 2026-10-29 security hardening
+
+- Reject DOS device names and ambiguous Windows file paths in guarded file helpers.
+- Require explicit `--allow-shell-strings` for the legacy test-pipeline shell interface; exact argv arrays remain the default.
+- Reject malformed/nonfinite pipeline timeouts before starting task-owned processes.
+- Prevent screenshots from overwriting existing files or traversing linked output directories; improve mouse click targeting checks.
+- Add isolated security regression tests and read-only Linux/Windows CI with pinned GitHub Actions.
+- Correct public-package inventory drift for the previously published developer profile.
+- Changes are repository-only; deployment and interactive GUI behavior require independent Windows verification.
+
 ## 0.1.0 — 2026-10-05
 
 - Initial public source package for the Windows Laptop Operator skill and task-scoped runtime.
