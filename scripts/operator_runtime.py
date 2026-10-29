@@ -33,7 +33,7 @@ class Runtime:
                 result.append({'path':path,'sha256':digest(raw),'bytes':len(raw),'mtime_ns':p.stat().st_mtime_ns})
             if op=='verify_hashes':return {'files':result,'matched':all(args['expected'].get(x['path'])==x['sha256'] for x in result)}
             return result
-        if op=='workspace_lookup':return workspace_lookup(args['alias'],args.get('ttl',3600))
+        if op=='workspace_lookup':return workspace_lookup(args['alias'],args.get('ttl',3600),expected_root=self.root)
         if op in ('apply_patchset','workspace_update'):
             if not self.allow_writes:raise ValueError('write operation disabled for this session')
             if op=='apply_patchset':return apply_patchset(self.root,args['changes'])
