@@ -6,7 +6,7 @@ The user's authorization, host permissions, Windows account permissions and conn
 
 The runtime accepts stdio JSONL only. It creates no control listener, scheduled task, service, startup entry or permanent daemon. Approved processes can make their own network requests and filesystem changes; review their behavior separately.
 
-`--allow-writes` enables helper patching and workspace registration. It does **not** prevent side effects from commands supplied using `--commands`. Review exact argv and project code before execution. Direct Python module calls also bypass the runtime's capability switch.
+`--allow-writes` enables helper patching and workspace registration. It does **not** prevent side effects from commands supplied using `--commands`. Review exact argv and project code before execution. Direct Python module calls also bypass the runtime's capability switch. The standalone `test_pipeline.py` refuses shell-string commands by default; legacy shell execution requires `--allow-shell-strings` and prior review. Use argv arrays whenever possible.
 
 ## Data handled locally
 
@@ -20,11 +20,11 @@ Common credential paths and text patterns are refused or redacted. Pattern match
 
 ## Implementation limits
 
-File guards reject traversal and common protected paths, check expected hashes and verify replacements. They are defense in depth. Concurrent same-user path replacement remains possible; stop competing editors. Replacement can affect ACL inheritance or alternate streams. Multi-file edits are not crash-atomic.
+File guards reject traversal, ambiguous Windows device/file names and common protected paths, check expected hashes and verify replacements. They are defense in depth. Concurrent same-user path replacement remains possible; stop competing editors. Replacement can affect ACL inheritance or alternate streams. Multi-file edits are not crash-atomic.
 
 Process ownership is limited to direct children. Abrupt termination and detached descendants require connector-level inspection. A loopback HTTP response does not prove that the owned process serves that port.
 
-Window/PID/focus checks reduce accidental GUI input but are not an atomic OS lock. Do not use the input helpers for secrets, secure desktops or high-impact confirmation dialogs. Accessibility providers can hang; use connector timeouts. Respect host restrictions even if a script could technically perform the action.
+Window/PID/focus checks reduce accidental GUI input but are not an atomic OS lock. Screenshot writes create a new PNG only in an existing non-linked directory; captures can still contain sensitive full-desktop content. Do not use the input helpers for secrets, secure desktops or high-impact confirmation dialogs. Accessibility providers can hang; use connector timeouts. Respect host restrictions even if a script could technically perform the action.
 
 ## Before publishing a fork or release
 
