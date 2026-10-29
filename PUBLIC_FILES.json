@@ -1,5 +1,6 @@
 [
   ".gitattributes",
+  ".github/workflows/security-regression.yml",
   ".gitignore",
   "CHANGELOG.md",
   "CONTRIBUTING.md",
@@ -38,6 +39,7 @@
   "scripts/window_control.ps1",
   "tests/test_public_scan.py",
   "tests/test_runtime.py",
+  "tests/test_security_hardening.py",
   "tools/package_skill.py",
   "tools/privacy_scan.py"
 ]
