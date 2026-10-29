@@ -65,7 +65,7 @@ Caught errors trigger rollback only where bytes still match this operation's out
 
 `%LOCALAPPDATA%\ChatGPT\WindowsLaptopOperator\workspace_registry.json` is opt-in through `workspace_update`. It stores alias, root, last verified branch/HEAD/time, project markers, package-manager hint, venv path, package script names, top-level names and config SHA-256 fingerprints. No contents, logs, remote credentials or arbitrary free-text notes. Common commands are rediscovered by script name; arbitrary command strings are deliberately not persisted. The registry is not model memory and cannot authorize anything.
 
-Every lookup reads live Git and fingerprints; TTL/branch/HEAD/config change invalidates cached detection. Refresh registration after a verified change. A missing/moved root or invalid cache is an explicit error; rediscover only that project. There is a single-writer lock and atomic replace. A stale lock after a crash is not automatically removed; verify no writer remains first. Do not rewrite the registry on every read.
+Within a runtime session, workspace lookup is restricted to an alias whose canonical directory matches the session's explicitly selected `--root`; an alias for another project must be handled in a separately authorized session. Check the root before Git or project data is read. Every permitted lookup reads live Git and fingerprints; TTL/branch/HEAD/config change invalidates cached detection. Refresh registration after a verified change. A missing/moved root or invalid cache is an explicit error; rediscover only that project. There is a single-writer lock and atomic replace. A stale lock after a crash is not automatically removed; verify no writer remains first. Do not rewrite the registry on every read.
 
 ## Limitations and fallback
 
