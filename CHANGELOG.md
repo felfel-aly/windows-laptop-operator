@@ -3,6 +3,7 @@
 ## Unreleased — 2026-10-29 security hardening
 
 - Reject DOS device names and ambiguous Windows file paths in guarded file helpers.
+- Restrict runtime workspace alias lookups to the bound project root, preventing cross-project metadata inspection.
 - Require explicit `--allow-shell-strings` for the legacy test-pipeline shell interface; exact argv arrays remain the default.
 - Reject malformed/nonfinite pipeline timeouts before starting task-owned processes.
 - Prevent screenshots from overwriting existing files or traversing linked output directories; improve mouse click targeting checks.
