@@ -103,7 +103,7 @@ tests/                   Synthetic isolated regression tests
 tools/                   Public-file scanning and packaging
 ```
 
-Run `python -m unittest discover -s tests -v` and `python tools/privacy_scan.py` before sharing a modified copy. Build an upload ZIP with `python tools/package_skill.py`; it includes only the validated public-file inventory.
+Run `python -m unittest discover -s tests -v` and `python tools/privacy_scan.py` before sharing a modified copy. The `.github/workflows/security-regression.yml` workflow exercises Python regressions and public-file packaging on Linux and Windows, plus PowerShell syntax checks on Windows. For `scripts/test_pipeline.py`, use argv-array commands; legacy shell strings require `--allow-shell-strings`. Build an upload ZIP with `python tools/package_skill.py`; it includes only the validated public-file inventory.
 
 ## License
 
