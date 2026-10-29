@@ -1,14 +1,17 @@
 """Isolated security regressions; never interact with the user's Windows session."""
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
 import operator_core as core
+from operator_runtime import Runtime
 from process_manager import Processes
 
 
@@ -71,6 +74,23 @@ class SecurityHardeningTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     manager.pipeline(['safe'], timeout)
                 self.assertEqual(manager.children, {})
+
+    def test_runtime_alias_lookup_cannot_inspect_other_workspace(self):
+        bound = self.project / 'bound'
+        unrelated = self.project / 'unrelated'
+        bound.mkdir()
+        unrelated.mkdir()
+        with patch.dict(os.environ, {'LOCALAPPDATA': str(self.project / 'private-state')}):
+            core.workspace_update('selected', bound)
+            core.workspace_update('other', unrelated)
+            runtime = Runtime(bound)
+            try:
+                result = runtime.call('workspace_lookup', {'alias': 'selected'})
+                self.assertFalse(result['stale'])
+                with self.assertRaises(ValueError):
+                    runtime.call('workspace_lookup', {'alias': 'other'})
+            finally:
+                runtime.processes.close()
 
     def test_invalid_manifest_is_not_silently_normalized(self):
         with self.assertRaises(ValueError):
