@@ -4,6 +4,8 @@
 
 The user's authorization, host permissions, Windows account permissions and connector controls are the access boundary. The skill and helper process are not a sandbox, credential vault, remote-access service or approval engine. Run them as a normal user against a deliberately selected project.
 
+A workspace alias does not expand a runtime session's selected root. A cross-root registry lookup is refused before the other project's Git/config metadata is inspected.
+
 The runtime accepts stdio JSONL only. It creates no control listener, scheduled task, service, startup entry or permanent daemon. Approved processes can make their own network requests and filesystem changes; review their behavior separately.
 
 `--allow-writes` enables helper patching and workspace registration. It does **not** prevent side effects from commands supplied using `--commands`. Review exact argv and project code before execution. Direct Python module calls also bypass the runtime's capability switch. The standalone `test_pipeline.py` refuses shell-string commands by default; legacy shell execution requires `--allow-shell-strings` and prior review. Use argv arrays whenever possible.
