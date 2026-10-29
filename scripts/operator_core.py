@@ -16,6 +16,7 @@ import time
 MAX_FILE = 1024 * 1024
 MAX_TEXT = 64000
 SKIP = {'.git', '.venv', 'venv', 'node_modules', '__pycache__', 'runtime', 'dist', 'build', '.ssh', '.aws'}
+WINDOWS_DEVICE_NAME = re.compile(r'(?i)^(?:con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\..*)?$')
 MARKERS = ('package.json', 'package-lock.json', 'pnpm-lock.yaml', 'yarn.lock', 'pyproject.toml',
            'requirements.txt', 'Pipfile', 'poetry.lock', 'uv.lock', 'pom.xml', 'build.gradle',
            'build.gradle.kts', 'Cargo.toml', 'go.mod', 'AGENTS.md')
@@ -47,6 +48,11 @@ def safe_path(root, relative):
     if not str(relative) or rel.is_absolute() or rel.drive or '..' in rel.parts or ':' in str(relative):
         raise ValueError('relative normal project path required')
     if restricted(rel): raise ValueError('protected path refused')
+    # Refuse reserved devices and Windows filename aliases on every platform.
+    for part in rel.parts:
+        if (part.rstrip(' .') != part or WINDOWS_DEVICE_NAME.fullmatch(part) or
+                any(ord(c) < 32 or c in '<>"|?*' for c in part)):
+            raise ValueError('unsafe Windows file name')
     base = root_path(root)
     p = base
     for part in rel.parts:
