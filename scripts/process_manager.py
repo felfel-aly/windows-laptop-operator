@@ -1,5 +1,6 @@
 """Task-owned child processes; bounded in-memory output; no PID adoption."""
 from collections import deque
+import math
 import subprocess
 import threading
 import time
@@ -8,7 +9,7 @@ from operator_core import redact, root_path
 
 class Processes:
     def __init__(self, root, commands=None):
-        self.root=root_path(root); self.commands=commands or {}; self.children={}
+        self.root=root_path(root); self.commands={} if commands is None else commands; self.children={}
         if not isinstance(self.commands,dict) or len(self.commands)>16: raise ValueError('at most 16 approved commands')
         for label,argv in self.commands.items():
             if not isinstance(label,str) or not isinstance(argv,list) or not argv or len(argv)>64 or not all(isinstance(x,str) and len(x)<4096 for x in argv):
@@ -57,10 +58,15 @@ class Processes:
     def pipeline(self,labels,timeout=60):
         if not isinstance(labels,list) or not 1<=len(labels)<=12:raise ValueError('1..12 labels required')
         if any(x not in self.commands for x in labels):raise ValueError('unapproved check label')
+        try: seconds=float(timeout)
+        except (TypeError,ValueError,OverflowError): raise ValueError('invalid pipeline timeout') from None
+        if not math.isfinite(seconds) or seconds<=0:
+            raise ValueError('pipeline timeout must be finite and positive')
+        seconds=min(max(seconds,0.1),300)
         results=[]
         for label in labels:
             started=self.start(label);p=self.children[started['token']]['p'];timed_out=False
-            try:p.wait(timeout=min(max(float(timeout),0.1),300))
+            try:p.wait(timeout=seconds)
             except subprocess.TimeoutExpired:self.stop(started['token']);timed_out=True
             result=self.status(started['token']);result['timeout']=timed_out;results.append(result)
             if result['exit_code'] or timed_out:break
