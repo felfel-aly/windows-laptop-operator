@@ -320,10 +320,18 @@ def workspace_update(alias,root):
     finally: lock.unlink(missing_ok=True)
     return {'alias':alias,'saved':True,'state_file':str(p)}
 
-def workspace_lookup(alias,ttl=3600):
+def workspace_lookup(alias,ttl=3600,expected_root=None):
     data=json.loads(bounded_read(registry_path()))
-    if alias not in data: raise ValueError('unknown workspace alias')
-    entry=data[alias]; snap=workspace_snapshot(entry['root']); fp=fingerprints(snap['repo_root'])
+    if not isinstance(data,dict) or alias not in data:
+        raise ValueError('unknown workspace alias')
+    entry=data[alias]
+    if not isinstance(entry,dict) or not isinstance(entry.get('root'),str):
+        raise ValueError('invalid workspace registry entry')
+    # A runtime bound to one root must not inspect another registered project.
+    # Check scope before Git discovery, fingerprint reads, or cache refresh.
+    if expected_root is not None and root_path(entry['root']) != root_path(expected_root):
+        raise ValueError('workspace alias outside current session root')
+    snap=workspace_snapshot(entry['root']); fp=fingerprints(snap['repo_root'])
     stale=(time.time()-entry['verified_at']>min(max(int(ttl),0),86400) or
            snap['is_git']!=entry.get('is_git',True) or snap['repo_root']!=entry['root'] or snap['head']!=entry['head'] or snap['branch']!=entry['branch'] or fp!=entry['project']['fingerprints'])
     return {'alias':alias,'stale':stale,'git':snap,'project':project_detect(snap['repo_root']) if stale else entry['project'],
