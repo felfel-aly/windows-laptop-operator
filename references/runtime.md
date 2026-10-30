@@ -24,7 +24,7 @@ Example manifest shape (use the project's actual Python executable):
 {"focused":["C:\\project path\\.venv\\Scripts\\python.exe","-m","unittest","test_app"],"regression":["C:\\project path\\.venv\\Scripts\\python.exe","-m","unittest","discover"]}
 ```
 
-No shell-string expansion. On Windows, resolve an executable entrypoint for `.cmd` wrappers when possible; otherwise use a trusted native connector's shell session with exact scoped commands. Pipelines stop at the first failure. Do not let a pipeline make decisions about approval, production or experiments.
+No shell-string expansion. On Windows, resolve an executable entrypoint for `.cmd` wrappers when possible; otherwise use a trusted native connector's shell session with exact scoped commands. Pipelines reject labels already running as independent task processes rather than adopting and potentially terminating them on timeout. Pipelines stop at the first failure. Do not let a pipeline make decisions about approval, production or experiments.
 
 ## Protocol
 
