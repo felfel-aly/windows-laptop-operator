@@ -63,6 +63,11 @@ class Processes:
         if not math.isfinite(seconds) or seconds<=0:
             raise ValueError('pipeline timeout must be finite and positive')
         seconds=min(max(seconds,0.1),300)
+        # A pipeline must not adopt or time out a process previously started as
+        # an independent task-owned service with the same command label.
+        live={item['label'] for item in self.children.values() if item['p'].poll() is None}
+        if any(label in live for label in labels):
+            raise ValueError('pipeline cannot take over an active task process')
         results=[]
         for label in labels:
             started=self.start(label);p=self.children[started['token']]['p'];timed_out=False
