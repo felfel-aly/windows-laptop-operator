@@ -25,6 +25,7 @@ class SecurityHardeningTests(unittest.TestCase):
         invalid = [
             'CON', 'con.txt', 'PRN.csv', 'AUX', 'NUL.log',
             'COM1', 'LPT9.txt', 'folder/COM3.cfg',
+            'COM¹', 'com².log', 'folder/LPT³.cfg', 'LPT².txt',
             'trailing.', 'trailing ', 'odd?name.txt', 'has<angle',
             'tab\tname',
         ]

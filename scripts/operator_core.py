@@ -16,7 +16,7 @@ import time
 MAX_FILE = 1024 * 1024
 MAX_TEXT = 64000
 SKIP = {'.git', '.venv', 'venv', 'node_modules', '__pycache__', 'runtime', 'dist', 'build', '.ssh', '.aws'}
-WINDOWS_DEVICE_NAME = re.compile(r'(?i)^(?:con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\..*)?$')
+WINDOWS_DEVICE_NAME = re.compile(r'(?i)^(?:con|prn|aux|nul|com[1-9¹²³]|lpt[1-9¹²³])(?:\..*)?$')
 MARKERS = ('package.json', 'package-lock.json', 'pnpm-lock.yaml', 'yarn.lock', 'pyproject.toml',
            'requirements.txt', 'Pipfile', 'poetry.lock', 'uv.lock', 'pom.xml', 'build.gradle',
            'build.gradle.kts', 'Cargo.toml', 'go.mod', 'AGENTS.md')
