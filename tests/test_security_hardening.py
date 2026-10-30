@@ -92,6 +92,17 @@ class SecurityHardeningTests(unittest.TestCase):
             finally:
                 runtime.processes.close()
 
+    def test_pipeline_does_not_adopt_or_stop_existing_process(self):
+        manager = Processes(self.project, {
+            'service': [sys.executable, '-c', "import time; time.sleep(30)"]
+        })
+        self.addCleanup(manager.close)
+        token = manager.start('service')['token']
+        self.assertTrue(manager.status(token)['alive'])
+        with self.assertRaises(ValueError):
+            manager.pipeline(['service'], timeout=0.1)
+        self.assertTrue(manager.status(token)['alive'])
+
     def test_invalid_manifest_is_not_silently_normalized(self):
         with self.assertRaises(ValueError):
             Processes(self.project, [])
