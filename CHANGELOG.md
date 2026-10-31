@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — 2026-10-31 selected-directory scope repair
+
+- Keep context discovery, source search, workspace aliases and cached project fingerprints within the explicitly selected directory, including subdirectories of a Git repository.
+- Add two behavioral regressions using disposable Git repositories. Git status remains repository metadata; these helpers are not a sandbox.
+- Existing aliases that previously expanded to a parent repository require explicit re-registration for the desired directory. No automatic registry migration or deployment.
+
 ## Unreleased — 2026-10-29 security hardening
 
 - Reject DOS device names and ambiguous Windows file paths in guarded file helpers.
@@ -20,3 +26,4 @@
 - Removes private project profiles and excludes all deployed machine state.
 - Adds installation, connector, security, update and contribution documentation, isolated tests, an explicit public-file inventory and a fail-closed packaging check.
 - Licensed under MIT.
+

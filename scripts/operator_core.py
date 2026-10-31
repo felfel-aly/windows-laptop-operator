@@ -225,7 +225,8 @@ def workspace_snapshot(root):
             'note': 'Non-Git workspace: version-control change tracking unavailable'}
 
 def context_pack(root,query=None):
-    snap=workspace_snapshot(root); root=snap['repo_root']
+    # Git metadata may name a parent repository; it never widens file scope.
+    root=str(root_path(root)); snap=workspace_snapshot(root)
     info=project_detect(root)
     out={'git':snap,'project':info,'instruction_locations':[str(p/'AGENTS.md') for p in [Path(root),*Path(root).parents] if (p/'AGENTS.md').is_file()]}
     if query: out['search']=search_context(root,query)
@@ -306,8 +307,8 @@ def workspace_update(alias,root):
     except FileExistsError: raise ValueError('registry busy; inspect stale lock only after confirming owner exited') from None
     try:
         os.close(fd); data=json.loads(bounded_read(p)) if p.exists() else {}
-        snap=workspace_snapshot(root); info=project_detect(snap['repo_root'])
-        entry={'root':snap['repo_root'],'is_git':snap['is_git'],'branch':snap['branch'],'head':snap['head'],'verified_at':time.time(),'project':info}
+        selected=str(root_path(root)); snap=workspace_snapshot(selected); info=project_detect(selected)
+        entry={'root':selected,'is_git':snap['is_git'],'branch':snap['branch'],'head':snap['head'],'verified_at':time.time(),'project':info}
         raw=json.dumps(entry,ensure_ascii=True)
         if redact(raw)!=raw: raise ValueError('sensitive metadata refused')
         if alias not in data and len(data)>=100: raise ValueError('registry limited to 100 projects')
@@ -331,8 +332,9 @@ def workspace_lookup(alias,ttl=3600,expected_root=None):
     # Check scope before Git discovery, fingerprint reads, or cache refresh.
     if expected_root is not None and root_path(entry['root']) != root_path(expected_root):
         raise ValueError('workspace alias outside current session root')
-    snap=workspace_snapshot(entry['root']); fp=fingerprints(snap['repo_root'])
+    snap=workspace_snapshot(entry['root']); fp=fingerprints(entry['root'])
     stale=(time.time()-entry['verified_at']>min(max(int(ttl),0),86400) or
-           snap['is_git']!=entry.get('is_git',True) or snap['repo_root']!=entry['root'] or snap['head']!=entry['head'] or snap['branch']!=entry['branch'] or fp!=entry['project']['fingerprints'])
-    return {'alias':alias,'stale':stale,'git':snap,'project':project_detect(snap['repo_root']) if stale else entry['project'],
+           snap['is_git']!=entry.get('is_git',True) or snap['head']!=entry['head'] or snap['branch']!=entry['branch'] or fp!=entry['project']['fingerprints'])
+    return {'alias':alias,'stale':stale,'git':snap,'project':project_detect(entry['root']) if stale else entry['project'],
             'cache_authority':False}
+

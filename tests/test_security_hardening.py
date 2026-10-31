@@ -104,6 +104,41 @@ class SecurityHardeningTests(unittest.TestCase):
             manager.pipeline(['service'], timeout=0.1)
         self.assertTrue(manager.status(token)['alive'])
 
+    def test_context_pack_does_not_expand_selected_subdirectory(self):
+        subprocess.run(['git', 'init', '-q', str(self.project)], check=True)
+        selected = self.project / 'selected'
+        selected.mkdir()
+        (self.project / 'package.json').write_text('{"scripts":{"outside":"unused"}}', encoding='utf-8')
+        (self.project / 'outside.txt').write_text('scope-marker outside', encoding='utf-8')
+        (selected / 'inside.py').write_text('# scope-marker inside', encoding='utf-8')
+        runtime = Runtime(selected)
+        self.addCleanup(runtime.processes.close)
+        result = runtime.call('project_snapshot', {'query': 'scope-marker'})
+        self.assertEqual(result['project']['root'], str(selected.resolve()))
+        self.assertEqual(result['project']['markers'], [])
+        self.assertNotIn('outside.txt', result['project']['top_level'])
+        self.assertEqual([m['path'] for m in result['search']['matches']], ['inside.py'])
+
+    def test_workspace_registry_retains_selected_subdirectory(self):
+        subprocess.run(['git', 'init', '-q', str(self.project)], check=True)
+        selected = self.project / 'selected'
+        selected.mkdir()
+        (self.project / 'package.json').write_text('{}', encoding='utf-8')
+        (selected / 'inside.py').write_text('# selected', encoding='utf-8')
+        with patch.dict(os.environ, {'LOCALAPPDATA': str(self.project / 'private-state')}):
+            core.workspace_update('selected', selected)
+            saved = json.loads(core.registry_path().read_text(encoding='utf-8'))['selected']
+            self.assertEqual(saved['root'], str(selected.resolve()))
+            result = core.workspace_lookup('selected', expected_root=selected)
+            self.assertFalse(result['stale'])
+            self.assertEqual(result['project']['root'], str(selected.resolve()))
+            self.assertNotIn('package.json', result['project']['fingerprints'])
+            (selected / 'requirements.txt').write_text('# selected dependency marker', encoding='utf-8')
+            refreshed = core.workspace_lookup('selected', expected_root=selected)
+            self.assertTrue(refreshed['stale'])
+            self.assertEqual(refreshed['project']['root'], str(selected.resolve()))
+            self.assertEqual(set(refreshed['project']['fingerprints']), {'requirements.txt'})
+
     def test_invalid_manifest_is_not_silently_normalized(self):
         with self.assertRaises(ValueError):
             Processes(self.project, [])
@@ -113,3 +148,4 @@ class SecurityHardeningTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
