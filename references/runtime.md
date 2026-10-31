@@ -24,7 +24,7 @@ Example manifest shape (use the project's actual Python executable):
 {"focused":["C:\\project path\\.venv\\Scripts\\python.exe","-m","unittest","test_app"],"regression":["C:\\project path\\.venv\\Scripts\\python.exe","-m","unittest","discover"]}
 ```
 
-No shell-string expansion. On Windows, resolve an executable entrypoint for `.cmd` wrappers when possible; otherwise use a trusted native connector's shell session with exact scoped commands. Pipelines stop at the first failure. Do not let a pipeline make decisions about approval, production or experiments.
+No shell-string expansion. On Windows, resolve an executable entrypoint for `.cmd` wrappers when possible; otherwise use a trusted native connector's shell session with exact scoped commands. Pipelines reject labels already running as independent task processes rather than adopting and potentially terminating them on timeout. Pipelines stop at the first failure. Do not let a pipeline make decisions about approval, production or experiments.
 
 ## Protocol
 
@@ -63,9 +63,11 @@ Caught errors trigger rollback only where bytes still match this operation's out
 
 ## Workspace memory
 
+Context discovery, source search, alias registration and project fingerprints retain the explicitly selected directory even when Git identifies a parent repository. Git status/branch/HEAD remain repository metadata; selecting a subdirectory does not sandbox Git or approved commands. An alias saved by an older version with a widened parent root must be explicitly re-registered for the intended directory; no automatic migration grants access.
+
 `%LOCALAPPDATA%\ChatGPT\WindowsLaptopOperator\workspace_registry.json` is opt-in through `workspace_update`. It stores alias, root, last verified branch/HEAD/time, project markers, package-manager hint, venv path, package script names, top-level names and config SHA-256 fingerprints. No contents, logs, remote credentials or arbitrary free-text notes. Common commands are rediscovered by script name; arbitrary command strings are deliberately not persisted. The registry is not model memory and cannot authorize anything.
 
-Every lookup reads live Git and fingerprints; TTL/branch/HEAD/config change invalidates cached detection. Refresh registration after a verified change. A missing/moved root or invalid cache is an explicit error; rediscover only that project. There is a single-writer lock and atomic replace. A stale lock after a crash is not automatically removed; verify no writer remains first. Do not rewrite the registry on every read.
+Within a runtime session, workspace lookup is restricted to an alias whose canonical directory matches the session's explicitly selected `--root`; an alias for another project must be handled in a separately authorized session. Check the root before Git or project data is read. Every permitted lookup reads live Git and fingerprints; TTL/branch/HEAD/config change invalidates cached detection. Refresh registration after a verified change. A missing/moved root or invalid cache is an explicit error; rediscover only that project. There is a single-writer lock and atomic replace. A stale lock after a crash is not automatically removed; verify no writer remains first. Do not rewrite the registry on every read.
 
 ## Limitations and fallback
 
@@ -78,3 +80,4 @@ If no persistent session exists, use one-shot helpers and direct connector batch
 ## Non-Git folders
 
 Context packs and workspace aliases accept non-Git folders and return `is_git: false`, null branch/HEAD and an explicit lack of version-control tracking. `repo_snapshot` still requires a worktree. Git discovery errors are not treated as non-Git success. Language hints include root-level extensions; plain `.m` files remain ambiguous.
+

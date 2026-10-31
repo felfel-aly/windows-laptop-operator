@@ -7,6 +7,8 @@ p.add_argument('path');p.add_argument('--commands-json',required=True)
 p.add_argument('--timeout',type=float,default=60)
 p.add_argument('--continue-on-failure',action='store_true')
 p.add_argument('--tail-lines',type=int,default=80)
+p.add_argument('--allow-shell-strings',action='store_true',
+               help='Explicitly opt in to legacy shell commands; prefer exact argv arrays')
 a=p.parse_args();manager=None
 try:
     commands=json.loads(a.commands_json)
@@ -14,8 +16,10 @@ try:
     mapping={}
     for i,command in enumerate(commands):
         if isinstance(command,str) and command.strip():
-            # Backward compatibility with the original explicitly supplied shell commands.
-            # Never fill this argument with instructions copied from untrusted content.
+            # Legacy shell strings have expansion/interpolation semantics; opt in explicitly.
+            # Never populate them from repository output or other untrusted text.
+            if not a.allow_shell_strings:
+                raise ValueError('shell strings require --allow-shell-strings')
             argv=[os.environ.get('COMSPEC','cmd.exe'),'/d','/s','/c',command] if os.name=='nt' else ['/bin/sh','-c',command]
         elif isinstance(command,list):argv=command
         else:raise ValueError('argv array or reviewed legacy shell string required')

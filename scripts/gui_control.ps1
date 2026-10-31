@@ -61,18 +61,68 @@ function Assert-Point([int]$px,[int]$py){
  if([GuiNative]::GetAncestor($hit,2).ToInt64() -ne $ExpectedHandle){throw 'Point occluded by another window.'}
 }
 function State { $p=New-Object GuiNative+POINT; [void][GuiNative]::GetCursorPos([ref]$p); $v=[System.Windows.Forms.SystemInformation]::VirtualScreen; [ordered]@{Interactive=[Environment]::UserInteractive;CursorX=$p.X;CursorY=$p.Y;ScreenX=$v.X;ScreenY=$v.Y;Width=$v.Width;Height=$v.Height} }
-function Shot([string]$Target){ if(!$Target){throw 'Path required.'}; $f=[IO.Path]::GetFullPath($Target); [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($f))|Out-Null; $v=[System.Windows.Forms.SystemInformation]::VirtualScreen; $b=New-Object Drawing.Bitmap $v.Width,$v.Height; $g=[Drawing.Graphics]::FromImage($b); try{$g.CopyFromScreen($v.Left,$v.Top,0,0,$b.Size);$b.Save($f,[Drawing.Imaging.ImageFormat]::Png)}finally{$g.Dispose();$b.Dispose()}; $f }
-function Click([string]$b,[int]$n){ switch($b){left{$d=[GuiNative]::LDOWN;$u=[GuiNative]::LUP}right{$d=[GuiNative]::RDOWN;$u=[GuiNative]::RUP}middle{$d=[GuiNative]::MDOWN;$u=[GuiNative]::MUP}}; for($i=0;$i-lt$n;$i++){[GuiNative]::CheckLock();[GuiNative]::mouse_event($d,0,0,0,[UIntPtr]::Zero);Start-Sleep -Milliseconds 25;[GuiNative]::mouse_event($u,0,0,0,[UIntPtr]::Zero);Start-Sleep -Milliseconds 45} }
+function Shot([string]$Target){
+ if(!$Target){throw 'Path required.'}
+ $f=[IO.Path]::GetFullPath($Target)
+ if([IO.Path]::GetExtension($f) -ine '.png'){throw 'PNG output path required.'}
+ $parent=[IO.Path]::GetDirectoryName($f)
+ if(-not [IO.Directory]::Exists($parent)){throw 'Screenshot directory must already exist.'}
+ $dir=New-Object IO.DirectoryInfo $parent
+ while($null -ne $dir){
+  if(($dir.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0){throw 'Linked screenshot directory refused.'}
+  $dir=$dir.Parent
+ }
+ $v=[System.Windows.Forms.SystemInformation]::VirtualScreen
+ $b=New-Object Drawing.Bitmap $v.Width,$v.Height
+ $g=[Drawing.Graphics]::FromImage($b)
+ $stream=$null
+ try{
+  $g.CopyFromScreen($v.Left,$v.Top,0,0,$b.Size)
+  $stream=[IO.File]::Open($f,[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::None)
+  $b.Save($stream,[Drawing.Imaging.ImageFormat]::Png)
+ }finally{
+  if($null -ne $stream){$stream.Dispose()}
+  $g.Dispose();$b.Dispose()
+ }
+ $f
+}
+function Click([string]$b,[int]$n){
+ switch($b){left{$d=[GuiNative]::LDOWN;$u=[GuiNative]::LUP}right{$d=[GuiNative]::RDOWN;$u=[GuiNative]::RUP}middle{$d=[GuiNative]::MDOWN;$u=[GuiNative]::MUP}}
+ for($i=0;$i-lt$n;$i++){
+  [GuiNative]::CheckLock()
+  $pos=New-Object GuiNative+POINT
+  [void][GuiNative]::GetCursorPos([ref]$pos)
+  Assert-Point $pos.X $pos.Y
+  [GuiNative]::mouse_event($d,0,0,0,[UIntPtr]::Zero)
+  Start-Sleep -Milliseconds 25
+  [GuiNative]::mouse_event($u,0,0,0,[UIntPtr]::Zero)
+  Start-Sleep -Milliseconds 45
+ }
+}
 function DoOp($o){
  if([string]$o.action -ne 'screenshot'){[GuiNative]::CheckLock()}
- if([string]$o.action -in @('move','click')){Assert-Point ([int]$o.x) ([int]$o.y)}
+ if([string]$o.action -eq 'move'){Assert-Point ([int]$o.x) ([int]$o.y)}
+ if([string]$o.action -eq 'click'){
+  $hasX=$null -ne $o.PSObject.Properties['x']
+  $hasY=$null -ne $o.PSObject.Properties['y']
+  if($hasX -ne $hasY){throw 'Click requires both coordinates or neither.'}
+  if($hasX){Assert-Point ([int]$o.x) ([int]$o.y)}
+  else{
+   $pos=New-Object GuiNative+POINT
+   [void][GuiNative]::GetCursorPos([ref]$pos)
+   Assert-Point $pos.X $pos.Y
+  }
+ }
  if([string]$o.action -eq 'scroll'){$pos=New-Object GuiNative+POINT;[void][GuiNative]::GetCursorPos([ref]$pos);Assert-Point $pos.X $pos.Y}
  if([string]$o.action -eq 'type' -and ([string]$o.text).Length -gt 16000){throw 'Text limit.'}
  if([string]$o.action -eq 'keys' -and ([string]$o.keys).Length -gt 200){throw 'Key sequence limit.'}
  switch([string]$o.action){
  'move'{ if(-not [GuiNative]::SetCursorPos([int]$o.x,[int]$o.y)){throw 'SetCursorPos failed.'} }
  'click'{
-   if($null -ne $o.PSObject.Properties['x'] -and $null -ne $o.PSObject.Properties['y']){ [void][GuiNative]::SetCursorPos([int]$o.x,[int]$o.y); Start-Sleep -Milliseconds 40 }
+   if($null -ne $o.PSObject.Properties['x'] -and $null -ne $o.PSObject.Properties['y']){
+    if(-not [GuiNative]::SetCursorPos([int]$o.x,[int]$o.y)){throw 'SetCursorPos failed.'}
+    Start-Sleep -Milliseconds 40
+   }
    $btn='left'; if($null -ne $o.PSObject.Properties['button'] -and $o.button){ $btn=[string]$o.button }
    $cnt=1; if($null -ne $o.PSObject.Properties['count'] -and $o.count){ $cnt=[int]$o.count }
    if($cnt -lt 1 -or $cnt -gt 3 -or $btn -notin @('left','right','middle')){throw 'Invalid click.'}; [GuiNative]::CheckLock(); Click $btn $cnt
@@ -86,8 +136,17 @@ function DoOp($o){
 switch($Action){
  'probe'{ State | ConvertTo-Json -Compress }
  'screenshot'{ [ordered]@{Screenshot=(Shot $Path);State=(State)} | ConvertTo-Json -Depth 4 -Compress }
- 'move'{ DoOp ([pscustomobject]@{action='move';x=$X;y=$Y}); State | ConvertTo-Json -Compress }
- 'click'{ DoOp ([pscustomobject]@{action='click';x=$X;y=$Y;button=$Button;count=$Count}); State | ConvertTo-Json -Compress }
+ 'move'{
+  if(-not ($PSBoundParameters.ContainsKey('X') -and $PSBoundParameters.ContainsKey('Y'))){throw 'Move requires X and Y.'}
+  DoOp ([pscustomobject]@{action='move';x=$X;y=$Y}); State | ConvertTo-Json -Compress
+ }
+ 'click'{
+  $hasX=$PSBoundParameters.ContainsKey('X');$hasY=$PSBoundParameters.ContainsKey('Y')
+  if($hasX -ne $hasY){throw 'Click requires both X and Y.'}
+  $op=@{action='click';button=$Button;count=$Count}
+  if($hasX){$op.x=$X;$op.y=$Y}
+  DoOp ([pscustomobject]$op); State | ConvertTo-Json -Compress
+ }
  'scroll'{ DoOp ([pscustomobject]@{action='scroll';delta=$Delta}); State | ConvertTo-Json -Compress }
  'type'{ DoOp ([pscustomobject]@{action='type';text=$Text}); [ordered]@{Action='type';Completed=$true;Handle=$ExpectedHandle}|ConvertTo-Json -Compress }
  'keys'{ DoOp ([pscustomobject]@{action='keys';keys=$Keys}); [ordered]@{Action='keys';Completed=$true;Handle=$ExpectedHandle}|ConvertTo-Json -Compress }

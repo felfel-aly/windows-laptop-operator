@@ -16,6 +16,7 @@ import time
 MAX_FILE = 1024 * 1024
 MAX_TEXT = 64000
 SKIP = {'.git', '.venv', 'venv', 'node_modules', '__pycache__', 'runtime', 'dist', 'build', '.ssh', '.aws'}
+WINDOWS_DEVICE_NAME = re.compile(r'(?i)^(?:con|prn|aux|nul|com[1-9¹²³]|lpt[1-9¹²³])(?:\..*)?$')
 MARKERS = ('package.json', 'package-lock.json', 'pnpm-lock.yaml', 'yarn.lock', 'pyproject.toml',
            'requirements.txt', 'Pipfile', 'poetry.lock', 'uv.lock', 'pom.xml', 'build.gradle',
            'build.gradle.kts', 'Cargo.toml', 'go.mod', 'AGENTS.md')
@@ -47,6 +48,11 @@ def safe_path(root, relative):
     if not str(relative) or rel.is_absolute() or rel.drive or '..' in rel.parts or ':' in str(relative):
         raise ValueError('relative normal project path required')
     if restricted(rel): raise ValueError('protected path refused')
+    # Refuse reserved devices and Windows filename aliases on every platform.
+    for part in rel.parts:
+        if (part.rstrip(' .') != part or WINDOWS_DEVICE_NAME.fullmatch(part) or
+                any(ord(c) < 32 or c in '<>"|?*' for c in part)):
+            raise ValueError('unsafe Windows file name')
     base = root_path(root)
     p = base
     for part in rel.parts:
@@ -219,7 +225,8 @@ def workspace_snapshot(root):
             'note': 'Non-Git workspace: version-control change tracking unavailable'}
 
 def context_pack(root,query=None):
-    snap=workspace_snapshot(root); root=snap['repo_root']
+    # Git metadata may name a parent repository; it never widens file scope.
+    root=str(root_path(root)); snap=workspace_snapshot(root)
     info=project_detect(root)
     out={'git':snap,'project':info,'instruction_locations':[str(p/'AGENTS.md') for p in [Path(root),*Path(root).parents] if (p/'AGENTS.md').is_file()]}
     if query: out['search']=search_context(root,query)
@@ -300,8 +307,8 @@ def workspace_update(alias,root):
     except FileExistsError: raise ValueError('registry busy; inspect stale lock only after confirming owner exited') from None
     try:
         os.close(fd); data=json.loads(bounded_read(p)) if p.exists() else {}
-        snap=workspace_snapshot(root); info=project_detect(snap['repo_root'])
-        entry={'root':snap['repo_root'],'is_git':snap['is_git'],'branch':snap['branch'],'head':snap['head'],'verified_at':time.time(),'project':info}
+        selected=str(root_path(root)); snap=workspace_snapshot(selected); info=project_detect(selected)
+        entry={'root':selected,'is_git':snap['is_git'],'branch':snap['branch'],'head':snap['head'],'verified_at':time.time(),'project':info}
         raw=json.dumps(entry,ensure_ascii=True)
         if redact(raw)!=raw: raise ValueError('sensitive metadata refused')
         if alias not in data and len(data)>=100: raise ValueError('registry limited to 100 projects')
@@ -314,11 +321,20 @@ def workspace_update(alias,root):
     finally: lock.unlink(missing_ok=True)
     return {'alias':alias,'saved':True,'state_file':str(p)}
 
-def workspace_lookup(alias,ttl=3600):
+def workspace_lookup(alias,ttl=3600,expected_root=None):
     data=json.loads(bounded_read(registry_path()))
-    if alias not in data: raise ValueError('unknown workspace alias')
-    entry=data[alias]; snap=workspace_snapshot(entry['root']); fp=fingerprints(snap['repo_root'])
+    if not isinstance(data,dict) or alias not in data:
+        raise ValueError('unknown workspace alias')
+    entry=data[alias]
+    if not isinstance(entry,dict) or not isinstance(entry.get('root'),str):
+        raise ValueError('invalid workspace registry entry')
+    # A runtime bound to one root must not inspect another registered project.
+    # Check scope before Git discovery, fingerprint reads, or cache refresh.
+    if expected_root is not None and root_path(entry['root']) != root_path(expected_root):
+        raise ValueError('workspace alias outside current session root')
+    snap=workspace_snapshot(entry['root']); fp=fingerprints(entry['root'])
     stale=(time.time()-entry['verified_at']>min(max(int(ttl),0),86400) or
-           snap['is_git']!=entry.get('is_git',True) or snap['repo_root']!=entry['root'] or snap['head']!=entry['head'] or snap['branch']!=entry['branch'] or fp!=entry['project']['fingerprints'])
-    return {'alias':alias,'stale':stale,'git':snap,'project':project_detect(snap['repo_root']) if stale else entry['project'],
+           snap['is_git']!=entry.get('is_git',True) or snap['head']!=entry['head'] or snap['branch']!=entry['branch'] or fp!=entry['project']['fingerprints'])
+    return {'alias':alias,'stale':stale,'git':snap,'project':project_detect(entry['root']) if stale else entry['project'],
             'cache_authority':False}
+

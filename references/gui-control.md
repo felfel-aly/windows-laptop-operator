@@ -60,7 +60,9 @@ Example shape:
 ]
 ```
 
-Use raw coordinate clicks only after the correct active window and current screenshot make the target unambiguous.
+Use raw coordinate clicks only after the correct active window and current screenshot make the target unambiguous. For `click`, specify both `-X` and `-Y` or omit both to click the **current** pointer position. `move` requires both coordinates. All clicks check the pointer is inside the expected foreground window, not occluded by another top-level window.
+
+For screenshots, supply a fresh `.png` path inside an **existing** directory. The helper refuses existing files and linked/reparse-point parent directories, and never silently replaces an earlier screenshot. The screenshot action still captures the **whole virtual desktop**, including any visible unrelated sensitive windows; close or hide these before capture. GUI input remains subject to its HWND/PID lock.
 
 ## Boundaries
 
