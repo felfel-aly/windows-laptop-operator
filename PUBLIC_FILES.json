@@ -38,6 +38,7 @@
   "scripts/test_pipeline.py",
   "scripts/uia_control.ps1",
   "scripts/window_control.ps1",
+  "tests/test_overwatch_readonly_contract.py",
   "tests/test_public_scan.py",
   "tests/test_runtime.py",
   "tests/test_security_hardening.py",
